@@ -4,7 +4,7 @@ set -euo pipefail
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
-BRICK_REPO="https://github.com/takhirovs1/flutter-starter-brick"
+BRICK_REPO="https://github.com/takhirovs1/flutter-starter-brick.git"
 BRICK_REF="v1.0.0"
 BRICK_NAME="core_app"
 FLUTTER_VERSION="3.41.6"
@@ -38,14 +38,12 @@ install_git() {
   info "Installing Git..."
   case "$OS" in
     macos) brew install git ;; linux) sudo apt-get update && sudo apt-get install -y git ;;
-    windows) winget install --id Git.Git -e --source winget 2>/dev/null || warn "Install Git manually: https://git-scm.com" ;;
   esac
 }
 
 install_xcode_cli() {
   [ "$OS" != "macos" ] && return
   if xcode-select -p >/dev/null 2>&1; then success "Xcode CLI Tools installed"; return; fi
-  info "Installing Xcode Command Line Tools..."
   xcode-select --install 2>/dev/null || true
   warn "Install dialog opened. Press ENTER when done."
   read -rp ""
@@ -55,7 +53,7 @@ install_android_studio() {
   [ "$OS" != "macos" ] && return
   if [ -d "/Applications/Android Studio.app" ]; then success "Android Studio installed"; return; fi
   read -rp "Install Android Studio? (y/n): " ans
-  [[ "$ans" =~ ^[Yy]$ ]] && brew install --cask android-studio && success "Android Studio installed" || warn "Skipped. Install later from https://developer.android.com/studio"
+  [[ "$ans" =~ ^[Yy]$ ]] && brew install --cask android-studio || warn "Skipped"
 }
 
 install_fvm() {
@@ -63,7 +61,7 @@ install_fvm() {
   info "Installing FVM..."
   case "$OS" in
     macos) brew tap leoafarias/fvm && brew install fvm ;;
-    *) dart pub global activate fvm 2>/dev/null || warn "FVM installation failed" ;;
+    *) dart pub global activate fvm 2>/dev/null || warn "FVM failed" ;;
   esac
 }
 
@@ -72,7 +70,7 @@ install_flutter() {
     success "Flutter $FLUTTER_VERSION available (FVM)"
   else
     info "Installing Flutter $FLUTTER_VERSION via FVM..."
-    fvm install "$FLUTTER_VERSION" || { fail "Flutter installation failed"; exit 1; }
+    fvm install "$FLUTTER_VERSION" || { fail "Flutter install failed"; exit 1; }
     success "Flutter $FLUTTER_VERSION installed"
   fi
   fvm global "$FLUTTER_VERSION" 2>/dev/null || true
@@ -83,7 +81,6 @@ install_flutter() {
 install_cocoapods() {
   [ "$OS" != "macos" ] && return
   if command_exists pod; then success "CocoaPods installed"; return; fi
-  info "Installing CocoaPods..."
   brew install cocoapods
   success "CocoaPods installed"
 }
@@ -92,8 +89,12 @@ install_mason() {
   export PATH="$HOME/.pub-cache/bin:$PATH"
   if command_exists mason; then success "Mason CLI installed"; return; fi
   info "Installing Mason CLI..."
-  dart pub global activate mason_cli 2>/dev/null || fvm dart pub global activate mason_cli 2>/dev/null || { fail "Mason installation failed"; exit 1; }
+  dart pub global activate mason_cli 2>/dev/null || fvm dart pub global activate mason_cli 2>/dev/null || { fail "Mason failed"; exit 1; }
   success "Mason CLI installed"
+}
+
+to_camel() {
+  echo "$1" | perl -pe 's/_([a-z])/uc($1)/ge'
 }
 
 ask_project_details() {
@@ -107,11 +108,13 @@ ask_project_details() {
   read -rp "$(echo -e "${CYAN}Package name${NC} [$ORG_DEFAULT.$PROJECT_NAME]: ")" APP_ID
   APP_ID="${APP_ID:-$ORG_DEFAULT.$PROJECT_NAME}"
   local last="${APP_ID##*.}"
-  local ios_bundle="${APP_ID%.*}.$(echo "$last" | sed -E 's/_([a-z])/\U\1/g')"
+  local camel_last
+  camel_last="$(to_camel "$last")"
+  IOS_BUNDLE="${APP_ID%.*}.$camel_last"
   echo ""
   echo -e "  ${GREEN}Project:${NC}          $PROJECT_NAME"
   echo -e "  ${GREEN}Android package:${NC}  $APP_ID"
-  echo -e "  ${GREEN}iOS bundle ID:${NC}    $ios_bundle"
+  echo -e "  ${GREEN}iOS bundle ID:${NC}    $IOS_BUNDLE"
   echo ""
   read -rp "Correct? (y/n): " ok
   [[ "$ok" =~ ^[Yy]$ ]] || { ask_project_details; return; }
@@ -121,10 +124,11 @@ create_project() {
   step "CREATING PROJECT"
   export PATH="$HOME/.pub-cache/bin:$PATH"
   info "Registering brick ($BRICK_REF)..."
-  mason add -g "$BRICK_NAME" --git-url "$BRICK_REPO" --git-ref "$BRICK_REF" --force >/dev/null 2>&1 || {
+  echo "y" | mason add -g "$BRICK_NAME" --git-url "$BRICK_REPO" --git-ref "$BRICK_REF" 2>&1 | tail -1 || {
     fail "Brick registration failed. Check repo access: $BRICK_REPO"; exit 1
   }
-  [ -e "$PROJECT_NAME" ] && { fail "'$PROJECT_NAME' already exists. Choose another name."; exit 1; }
+  success "Brick registered"
+  [ -e "$PROJECT_NAME" ] && { fail "'$PROJECT_NAME' already exists."; exit 1; }
   info "Generating project..."
   mason make "$BRICK_NAME" -o . --on-conflict overwrite --project_name "$PROJECT_NAME" --application_id "$APP_ID"
   success "Project created: ./$PROJECT_NAME"
@@ -136,7 +140,6 @@ finalize() {
   command_exists fvm && [ -f ".fvmrc" ] && fvm use "$FLUTTER_VERSION" --force 2>/dev/null || true
   echo ""
   echo -e "  ${GREEN}Project ready at:${NC} $(pwd)"
-  echo ""
   echo -e "  ${CYAN}Run:${NC}    cd $PROJECT_NAME && flutter run"
   echo -e "  ${CYAN}Open:${NC}   cursor .  OR  code ."
   echo ""
