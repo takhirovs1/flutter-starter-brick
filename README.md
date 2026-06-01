@@ -4,7 +4,7 @@ Standard Flutter project template for Udevs. Mason brick + bootstrap script.
 
 ## Quick Start
 
-    git clone https://github.com/udevs/flutter-starter-brick
+    git clone https://github.com/takhirovs1/flutter-starter-brick
     cd flutter-starter-brick
     chmod +x create.sh
     ./create.sh
