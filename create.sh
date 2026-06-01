@@ -4,7 +4,7 @@ set -euo pipefail
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
-BRICK_REPO="https://github.com/udevs/flutter-starter-brick"
+BRICK_REPO="https://github.com/takhirovs1/flutter-starter-brick"
 BRICK_REF="v1.0.0"
 BRICK_NAME="core_app"
 FLUTTER_VERSION="3.41.6"
