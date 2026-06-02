@@ -129,20 +129,23 @@ create_project() {
     fail "Brick registration failed. Check repo access: $BRICK_REPO"; exit 1
   }
   success "Brick registered"
-  [ -e "$PROJECT_NAME" ] && { fail "'$PROJECT_NAME' already exists."; exit 1; }
-  info "Generating project..."
-  mason make "$BRICK_NAME" -o . --on-conflict overwrite --project_name "$PROJECT_NAME" --application_id "$APP_ID"
-  success "Project created: ./$PROJECT_NAME"
+  OUTPUT_DIR="$(cd .. && pwd)"
+  [ -e "$OUTPUT_DIR/$PROJECT_NAME" ] && { fail "'$PROJECT_NAME' already exists in $OUTPUT_DIR"; exit 1; }
+  info "Generating project in $OUTPUT_DIR..."
+  mason make "$BRICK_NAME" -o "$OUTPUT_DIR" --on-conflict overwrite --project_name "$PROJECT_NAME" --application_id "$APP_ID"
+  success "Project created: $OUTPUT_DIR/$PROJECT_NAME"
 }
 
 finalize() {
   step "DONE"
-  cd "$PROJECT_NAME" 2>/dev/null || true
+  OUTPUT_DIR="$(cd .. && pwd)"
+  PROJECT_PATH="$OUTPUT_DIR/$PROJECT_NAME"
+  cd "$PROJECT_PATH" 2>/dev/null || true
   command_exists fvm && [ -f ".fvmrc" ] && fvm use "$FLUTTER_VERSION" --force 2>/dev/null || true
   echo ""
-  echo -e "  ${GREEN}Project ready at:${NC} $(pwd)"
-  echo -e "  ${CYAN}Run:${NC}    cd $PROJECT_NAME && flutter run"
-  echo -e "  ${CYAN}Open:${NC}   cursor .  OR  code ."
+  echo -e "  ${GREEN}Project ready at:${NC} $PROJECT_PATH"
+  echo -e "  ${CYAN}Run:${NC}    cd $PROJECT_PATH && flutter run"
+  echo -e "  ${CYAN}Open:${NC}   cursor $PROJECT_PATH  OR  code $PROJECT_PATH"
   echo ""
 }
 
