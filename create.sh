@@ -124,7 +124,8 @@ create_project() {
   step "CREATING PROJECT"
   export PATH="$HOME/.pub-cache/bin:$PATH"
   info "Registering brick ($BRICK_REF)..."
-  echo "y" | mason add -g "$BRICK_NAME" --git-url "$BRICK_REPO" --git-ref "$BRICK_REF" 2>&1 | tail -1 || {
+  mason remove -g "$BRICK_NAME" 2>/dev/null || true
+  mason add -g "$BRICK_NAME" --git-url "$BRICK_REPO" --git-ref "$BRICK_REF" || {
     fail "Brick registration failed. Check repo access: $BRICK_REPO"; exit 1
   }
   success "Brick registered"
